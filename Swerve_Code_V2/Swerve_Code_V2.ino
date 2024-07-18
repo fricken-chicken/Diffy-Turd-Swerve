@@ -14,7 +14,9 @@ int t2 = 0;
 int adc_read_counter = 0;
 int SamplingRate = 1000; //Read 1000 values in one second.
 
-hw_timer_t * timer = NULL; 
+hw_timer_t *timer = NULL;
+volatile SemaphoreHandle_t timerSemaphore;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 volatile bool interruptbool1 = false;
 
 #define pi  3.141592654
@@ -177,8 +179,15 @@ void mod2ringTACHpulse(){
   swMOD2.ringPULSEcount++;  
 }
 
-void IRAM_ATTR onTimer() {
-  //  interruptbool1 = true; //Indicates that the interrupt has been entered since the last time its value was changed to false 
+void ARDUINO_ISR_ATTR onTimer() {
+    // Increment the counter and set the time of ISR
+  portENTER_CRITICAL_ISR(&timerMux);
+  interruptbool1 = true; //Indicates that the interrupt has been entered since the last time its value was changed to false 
+  portEXIT_CRITICAL_ISR(&timerMux);
+  // Give a semaphore that we can check in the loop
+  xSemaphoreGiveFromISR(timerSemaphore, NULL);
+  // It is safe to use digitalRead/Write here if you want to toggle an output
+  
 }
 
 void setup() {
@@ -186,9 +195,17 @@ void setup() {
   AlfredoConnect.begin(bluetooth, true);
   bluetooth.println("Starting robot.");
   Serial.begin(9600);
-  // timer = timerBegin(1);                //Begin timer with 1 MHz frequency (80MHz/80)
+   timerSemaphore = xSemaphoreCreateBinary();
 
-  // timerAttachInterrupt(timer, &onTimer);   //Attach the interrupt to Timer1
+  // Set timer frequency to 1Mhz
+  timer = timerBegin(1000000);
+
+  // Attach onTimer function to our timer.
+  timerAttachInterrupt(timer, &onTimer);
+
+  // Set alarm to call onTimer function every second (value in microseconds).
+  // Repeat the alarm (third parameter) with unlimited count = 0 (fourth parameter).
+  timerAlarm(timer, 1000000, true, 0);  //Attach the interrupt to Timer1
   
   swMOD1.motors.setMotors(1,4);
   swMOD2.motors.setMotors(3,2);
