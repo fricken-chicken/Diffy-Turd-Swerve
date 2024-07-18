@@ -178,7 +178,7 @@ void mod2ringTACHpulse(){
 }
 
 void IRAM_ATTR onTimer() {
-   interruptbool1 = true; //Indicates that the interrupt has been entered since the last time its value was changed to false 
+  //  interruptbool1 = true; //Indicates that the interrupt has been entered since the last time its value was changed to false 
 }
 
 void setup() {
@@ -186,9 +186,9 @@ void setup() {
   AlfredoConnect.begin(bluetooth, true);
   bluetooth.println("Starting robot.");
   Serial.begin(9600);
-  timer = timerBegin(0);                //Begin timer with 1 MHz frequency (80MHz/80)
+  // timer = timerBegin(1);                //Begin timer with 1 MHz frequency (80MHz/80)
 
-  timerAttachInterrupt(timer, &onTimer);   //Attach the interrupt to Timer1
+  // timerAttachInterrupt(timer, &onTimer);   //Attach the interrupt to Timer1
   
   swMOD1.motors.setMotors(1,4);
   swMOD2.motors.setMotors(3,2);
@@ -226,6 +226,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   AlfredoConnect.update();
+  read_joysticks();
 
   //xVAL = analogRead(A1);
 
